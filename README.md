@@ -39,7 +39,7 @@ The API will be available at http://127.0.0.1:8000
    docker-compose up --build
    ```
 
-The API will be available at http://localhost:8000
+The API will be available at http://localhost:8000 (or your VPS IP:8000)
 
 ## API Endpoints
 
