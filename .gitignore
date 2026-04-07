@@ -1,1 +1,5 @@
 .env
+.venv
+.github
+__pycache__
+APITestView.swift
