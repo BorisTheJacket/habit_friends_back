@@ -50,14 +50,13 @@ def delete_profile(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
-    deleted = delete_user(db=db, firebase_uid=current_user)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Profile not found")
+    # Delete from DB if exists (don't fail if missing)
+    delete_user(db=db, firebase_uid=current_user)
     
-    # Delete from Firebase Auth
+    # Always delete from Firebase Auth
     try:
         firebase_auth.delete_user(current_user)
     except Exception:
-        pass  # User may already be gone from Firebase
+        pass
     
     return {"detail": "Account deleted"}
