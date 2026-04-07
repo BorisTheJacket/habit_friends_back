@@ -23,6 +23,16 @@ def get_user(db: Session, firebase_uid: str) -> User:
 def get_all_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(User).offset(skip).limit(limit).all()
 
+def delete_user(db: Session, firebase_uid: str) -> bool:
+    db_user = db.query(User).filter(User.id == firebase_uid).first()
+    if db_user is None:
+        return False
+    # Delete user's habits first (foreign key constraint)
+    db.query(Habit).filter(Habit.user_id == firebase_uid).delete()
+    db.delete(db_user)
+    db.commit()
+    return True
+
 def get_habit(db: Session, habit_id: str, user_id: str):
     return db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
 
