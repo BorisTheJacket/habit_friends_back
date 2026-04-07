@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal
-from crud import create_user, get_user_by_username, get_user_by_email
-from schemas import UserCreate, UserResponse
+from crud import upsert_user, get_user
+from schemas import UserUpsert, UserResponse
+from auth import get_current_user
 
 router = APIRouter()
 
@@ -13,20 +14,21 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/register", response_model=UserResponse)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if username exists
-    db_user = get_user_by_username(db, username=user.username)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
-    
-    # Check if email exists
-    db_user = get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Validate data (basic)
-    if len(user.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-    
-    return create_user(db=db, user=user)
+@router.post("/profile", response_model=UserResponse)
+def upsert_profile(
+    user: UserUpsert,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    return upsert_user(db=db, firebase_uid=current_user, data=user)
+
+
+@router.get("/profile", response_model=UserResponse)
+def get_profile(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    db_user = get_user(db, firebase_uid=current_user)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return db_user

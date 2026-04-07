@@ -2,6 +2,10 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+class UserUpsert(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+
 class UserCreate(BaseModel):
     username: str
     email: str
@@ -9,8 +13,8 @@ class UserCreate(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    username: str
-    email: str
+    username: Optional[str] = None
+    email: Optional[str] = None
 
     class Config:
         orm_mode = True
