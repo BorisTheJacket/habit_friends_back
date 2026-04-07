@@ -20,6 +20,9 @@ def upsert_user(db: Session, firebase_uid: str, data: UserUpsert) -> User:
 def get_user(db: Session, firebase_uid: str) -> User:
     return db.query(User).filter(User.id == firebase_uid).first()
 
+def get_all_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(User).offset(skip).limit(limit).all()
+
 def get_habit(db: Session, habit_id: str, user_id: str):
     return db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
 

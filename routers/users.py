@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal
-from crud import upsert_user, get_user
+from crud import upsert_user, get_user, get_all_users
 from schemas import UserUpsert, UserResponse
 from auth import get_current_user
 
@@ -13,6 +13,16 @@ def get_db():
         yield db
     finally:
         db.close()
+
+@router.get("/", response_model=list[UserResponse])
+def list_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    return get_all_users(db, skip=skip, limit=limit)
+
 
 @router.post("/profile", response_model=UserResponse)
 def upsert_profile(
