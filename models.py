@@ -19,7 +19,7 @@ class Habit(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     name = Column(String, index=True)
     days = Column(Integer)
-    image = Column(LargeBinary, nullable=True)  # Store image as binary data
+    image = Column(String, nullable=True)  # Store image as binary data
     is_small = Column(Boolean, default=False)
     date = Column(DateTime, default=datetime.utcnow)
 
