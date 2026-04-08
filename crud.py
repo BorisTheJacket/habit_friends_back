@@ -74,7 +74,7 @@ def create_friend_request(db: Session, from_user_id: str, to_user_id: str):
         raise ValueError("Cannot send friend request to yourself")
     existing = db.query(FriendRequest).filter(
         ((FriendRequest.from_user_id == from_user_id) & (FriendRequest.to_user_id == to_user_id)) |
-         (FriendRequest.from_user_id == to_user_id) & (FriendRequest.to_user_id == from_user_id))
+         ((FriendRequest.from_user_id == to_user_id) & (FriendRequest.to_user_id == from_user_id))
     ).filter(FriendRequest.status.in_(["pending", "accepted"])).first()
     if existing:
         raise ValueError("Friend request already exists")
