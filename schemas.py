@@ -62,8 +62,8 @@ class FriendRequestCreate(BaseModel):
     to_user_id: str
 
 class FriendHabitResponse(BaseModel):
+    user: UserResponse
     habit: HabitResponse
-    friend: UserResponse
 
     class Config:
         orm_mode = True
