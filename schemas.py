@@ -17,7 +17,7 @@ class UserResponse(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     avatar: Optional[str] = None
-    
+
     class Config:
         orm_mode = True
 
@@ -60,3 +60,10 @@ class FriendRequestResponse(BaseModel):
 
 class FriendRequestCreate(BaseModel):
     to_user_id: str
+
+class FriendHabitResponse(BaseModel):
+    habit: HabitResponse
+    friend: UserResponse
+
+    class Config:
+        orm_mode = True

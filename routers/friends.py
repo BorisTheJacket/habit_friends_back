@@ -6,9 +6,10 @@ from crud import (
     get_incoming_requests, 
     accept_friend_request, 
     reject_friend_request,
-    get_friends
+    get_friends,
+    get_friend_habits
     )
-from schemas import FriendRequestCreate, FriendRequestResponse, UserResponse
+from schemas import FriendRequestCreate, FriendRequestResponse, UserResponse, FriendHabitResponse
 from auth import get_current_user
 
 router = APIRouter()
@@ -67,3 +68,10 @@ def list_friends(
     current_user: str = Depends(get_current_user)
 ):
     return get_friends(db, user_id=current_user)
+
+@router.get("/habits", response_model=list[FriendHabitResponse])
+def list_friend_habits(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    return get_friend_habits(db, user_id=current_user)

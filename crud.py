@@ -129,3 +129,31 @@ def get_friends(db: Session, user_id: str):
         else:
             friend_ids.append(req.from_user_id)
     return db.query(User).filter(User.id.in_(friend_ids)).all()
+
+def get_friend_habits(db: Session, user_id: str):
+    requests = db.query(FriendRequest).filter(
+        FriendRequest.status == "accepted",
+        (FriendRequest.from_user_id == user_id) | (FriendRequest.to_user_id == user_id)
+    ).all()
+    friend_ids = []
+    for req in requests:
+        if req.from_user_id == user_id:
+            friend_ids.append(req.to_user_id)
+        else:
+            friend_ids.append(req.from_user_id)
+
+    if not friend_ids:
+        return []
+    
+    habits = db.query(Habit).filter(Habit.user_id.in_(friend_ids)).all()
+
+    users = db.query(User).filter(User.id.in_(friend_ids)).all()
+    user_map = {user.id: user for user in users}
+
+    result = []
+    for habit in habits:
+        user = user_map.get(habit.user_id)
+        if user:
+            result.append({"user" : user, "habit": habit})
+        
+    return result
