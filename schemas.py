@@ -5,6 +5,7 @@ from datetime import datetime
 class UserUpsert(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
+    avatar: Optional[str] = None
 
 class UserCreate(BaseModel):
     username: str
@@ -15,7 +16,8 @@ class UserResponse(BaseModel):
     id: str
     username: Optional[str] = None
     email: Optional[str] = None
-
+    avatar: Optional[str] = None
+    
     class Config:
         orm_mode = True
 

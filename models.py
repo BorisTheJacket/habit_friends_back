@@ -10,6 +10,7 @@ class User(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
+    avatar = Column(String, nullable=True)
     hashed_password = Column(String)
 
 class Habit(Base):
@@ -19,7 +20,7 @@ class Habit(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     name = Column(String, index=True)
     days = Column(Integer)
-    image = Column(String, nullable=True)  # Store image as binary data
+    image = Column(String, nullable=True)
     is_small = Column(Boolean, default=False)
     date = Column(DateTime, default=datetime.utcnow)
 
