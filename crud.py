@@ -13,6 +13,8 @@ def upsert_user(db: Session, firebase_uid: str, data: UserUpsert) -> User:
             db_user.username = data.username
         if data.email is not None:
             db_user.email = data.email
+        if data.avatar is not None:
+            db_user.avatar = data.avatar
     db.commit()
     db.refresh(db_user)
     return db_user
