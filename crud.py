@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from models import User, Habit
-from schemas import UserUpsert, HabitCreate, HabitUpdate
+from models import User, Habit, FriendRequest
+from schemas import UserUpsert, HabitCreate, HabitUpdate, FriendRequestCreate, FriendRequestResponse
 import uuid
 
 def upsert_user(db: Session, firebase_uid: str, data: UserUpsert) -> User:
@@ -67,3 +67,63 @@ def delete_habit(db: Session, habit_id: str, user_id: str):
         db.delete(db_habit)
         db.commit()
     return db_habit
+
+
+def create_friend_request(db: Session, from_user_id: str, to_user_id: str):
+    if from_user_id == to_user_id:
+        raise ValueError("Cannot send friend request to yourself")
+    existing = db.query(FriendRequest).filter(
+        ((FriendRequest.from_user_id == from_user_id) & (FriendRequest.to_user_id == to_user_id)) |
+         (FriendRequest.from_user_id == to_user_id) & (FriendRequest.to_user_id == from_user_id))
+    ).filter(FriendRequest.status.in_(["pending", "accepted"])).first()
+    if existing:
+        raise ValueError("Friend request already exists")
+    request = FriendRequest(from_user_id=from_user_id, to_user_id=to_user_id)
+    db.add(request)
+    db.commit()
+    db.refresh(request)
+    return request
+
+
+def get_incoming_requests(db: Session, user_id: str):
+    return db.query(FriendRequest).filter(FriendRequest.to_user_id == user_id, FriendRequest.status == "pending").all()
+
+def accept_friend_request(db: Session, request_id: str, user_id: str):
+    request = db.query(FriendRequest).filter(
+        FriendRequest.id == request_id,
+        FriendRequest.to_user_id == user_id,
+        FriendRequest.status == "pending"
+    ).first()
+    if request:
+        request.status = "accepted"
+        db.commit()
+        db.refresh(request)
+        return request
+    return None
+
+
+def reject_friend_request(db: Session, request_id: str, user_id: str):
+    request = db.query(FriendRequest).filter(
+        FriendRequest.id == request_id,
+        FriendRequest.to_user_id == user_id,
+        FriendRequest.status == "pending"
+    ).first()
+    if request:
+        request.status = "rejected"
+        db.commit()
+        db.refresh(request)
+        return request
+    return None
+
+def get_friends(db: Session, user_id: str):
+    requests = db.query(FriendRequest).filter(
+        ((FriendRequest.from_user_id == user_id) | (FriendRequest.to_user_id == user_id)) &
+         (FriendRequest.status == "accepted")
+    ).all()
+    friend_ids = []
+    for req in requests:
+        if req.from_user_id == user_id:
+            friend_ids.append(req.to_user_id)
+        else:
+            friend_ids.append(req.from_user_id)
+    return db.query(User).filter(User.id.in_(friend_ids)).all()

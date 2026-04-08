@@ -24,3 +24,16 @@ class Habit(Base):
     date = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User")
+
+
+class FriendRequest(Base):
+    __tablename__ = "friend_requests"
+
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    from_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    to_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    status = Column(String, default="pending")  # "pending", "accepted", "rejected"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    from_user = relationship("User", foreign_keys=[from_user_id])
+    to_user = relationship("User", foreign_keys=[to_user_id])

@@ -43,3 +43,18 @@ class HabitResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class FriendRequestResponse(BaseModel):
+    id: str
+    from_user_id: str
+    to_user_id: str
+    status: str
+    created_at: datetime
+    from_user: Optional[UserResponse] = None
+    to_user: Optional[UserResponse] = None
+
+    class Config:
+        orm_mode = True
+
+class FriendRequestCreate(BaseModel):
+    to_user_id: str
