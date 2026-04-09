@@ -67,3 +67,20 @@ class FriendHabitResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class HabitInvitationCreate(BaseModel):
+    friend_ids: list[str]
+
+class HabitInvitationOut(BaseModel):
+    id: str
+    habit_id: str
+    habit_name: str
+    habit_image: Optional[str] = None
+    habit_days: int
+    from_user: UserResponse
+    status: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
