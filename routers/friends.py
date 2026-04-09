@@ -28,10 +28,14 @@ def send_friend_request(
 ):
     if body.to_user_id == current_user:
         raise HTTPException(status_code=400, detail="Cannot send friend request to yourself")
-    result = create_friend_request(db=db, from_user_id=current_user, to_user_id=body.to_user_id)
+    try:
+        result = create_friend_request(db=db, from_user_id=current_user, to_user_id=body.to_user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     if result is None:
         raise HTTPException(status_code=400, detail="Request failed")
     return result
+
 
 @router.get("/requests/incoming", response_model=list[FriendRequestResponse])
 def list_incoming_requests(
