@@ -6,6 +6,7 @@ from schemas import UserUpsert, UserResponse
 from auth import get_current_user
 from crud import upsert_user, get_user, get_all_users, delete_user
 from firebase_admin import auth as firebase_auth
+from models import User
 
 router = APIRouter()
 
@@ -60,3 +61,16 @@ def delete_profile(
         pass
     
     return {"detail": "Account deleted"}
+
+
+@router.get("/check-username/{username}")
+def check_username(
+    username: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    existing = db.query(User).filter(
+        User.username == username,
+        User.id != current_user
+    ).first()
+    return {"available": existing is None}
