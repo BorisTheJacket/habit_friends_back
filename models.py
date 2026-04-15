@@ -38,3 +38,18 @@ class FriendRequest(Base):
 
     from_user = relationship("User", foreign_keys=[from_user_id])
     to_user = relationship("User", foreign_keys=[to_user_id])
+
+
+class HabitInvitation(Base):
+    __tablename__ = "habit_invitations"
+
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    habit_id = Column(String, ForeignKey("habits.id"), nullable=False)
+    from_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    to_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    status = Column(String, default="pending")  # "pending", "accepted", "rejected"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    habit = relationship("Habit")
+    from_user = relationship("User", foreign_keys=[from_user_id])
+    to_user = relationship("User", foreign_keys=[to_user_id])

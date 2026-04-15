@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import User, Habit, FriendRequest
+from models import User, Habit, FriendRequest, HabitInvitation
 from schemas import UserUpsert, HabitCreate, HabitUpdate, FriendRequestCreate, FriendRequestResponse
 import uuid
 
@@ -157,3 +157,82 @@ def get_friend_habits(db: Session, user_id: str):
             result.append({"user" : user, "habit": habit})
         
     return result
+
+
+def create_habit_invitations(db: Session, habit_id: str, from_user_id: str, friend_ids: list[str]):
+    habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == from_user_id).first()
+    if not habit:
+        raise ValueError("Habit not found")
+
+    created = []
+    for friend_id in friend_ids:
+        if friend_id == from_user_id:
+            continue
+        existing = db.query(HabitInvitation).filter(
+            HabitInvitation.habit_id == habit_id,
+            HabitInvitation.to_user_id == friend_id,
+            HabitInvitation.status == "pending"
+        ).first()
+        if existing:
+            continue
+        invitation = HabitInvitation(
+            habit_id=habit_id,
+            from_user_id=from_user_id,
+            to_user_id=friend_id
+        )
+        db.add(invitation)
+        created.append(invitation)
+    db.commit()
+    for inv in created:
+        db.refresh(inv)
+    return created
+
+
+def get_incoming_habit_invitations(db: Session, user_id: str):
+    return db.query(HabitInvitation).filter(
+        HabitInvitation.to_user_id == user_id,
+        HabitInvitation.status == "pending"
+    ).all()
+
+
+def accept_habit_invitation(db: Session, invitation_id: str, user_id: str):
+    invitation = db.query(HabitInvitation).filter(
+        HabitInvitation.id == invitation_id,
+        HabitInvitation.to_user_id == user_id,
+        HabitInvitation.status == "pending"
+    ).first()
+    if not invitation:
+        return None
+
+    invitation.status = "accepted"
+
+    # Copy the habit for the accepting user
+    original_habit = db.query(Habit).filter(Habit.id == invitation.habit_id).first()
+    if original_habit:
+        new_habit = Habit(
+            user_id=user_id,
+            name=original_habit.name,
+            days=original_habit.days,
+            image=original_habit.image,
+            is_small=original_habit.is_small,
+        )
+        db.add(new_habit)
+
+    db.commit()
+    db.refresh(invitation)
+    return invitation
+
+
+def reject_habit_invitation(db: Session, invitation_id: str, user_id: str):
+    invitation = db.query(HabitInvitation).filter(
+        HabitInvitation.id == invitation_id,
+        HabitInvitation.to_user_id == user_id,
+        HabitInvitation.status == "pending"
+    ).first()
+    if not invitation:
+        return None
+
+    invitation.status = "rejected"
+    db.commit()
+    db.refresh(invitation)
+    return invitation
