@@ -37,7 +37,7 @@ def delete_user(db: Session, firebase_uid: str):
     db.commit()
 
 
-// Habits
+# Habits
 
 def get_habit(db: Session, habit_id: str, user_id: str):
     return db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
@@ -77,7 +77,7 @@ def delete_habit(db: Session, habit_id: str, user_id: str):
         db.commit()
     return db_habit
 
-// Friend Requests
+# Friend Requests
 
 def create_friend_request(db: Session, from_user_id: str, to_user_id: str):
     if from_user_id == to_user_id:
@@ -166,7 +166,7 @@ def get_friend_habits(db: Session, user_id: str):
         
     return result
 
-// Habit Invitations
+# Habit Invitations
 
 def create_habit_invitations(db: Session, habit_id: str, from_user_id: str, friend_ids: list[str]):
     habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == from_user_id).first()
@@ -246,7 +246,7 @@ def reject_habit_invitation(db: Session, invitation_id: str, user_id: str):
     db.refresh(invitation)
     return invitation
 
-// Habit Completions
+# Habit Completions
 
 def create_completion(db: Session, habit_id: str, user_id: str, date: str):
     existing = db.query(HabitCompletion).filter(
