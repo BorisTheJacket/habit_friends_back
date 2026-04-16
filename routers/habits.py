@@ -5,9 +5,16 @@ from crud import (
     get_habit, get_habits, create_habit, update_habit, 
     delete_habit, update_habit_image,
     create_habit_invitations, get_incoming_habit_invitations,
-    accept_habit_invitation, reject_habit_invitation
+    accept_habit_invitation, reject_habit_invitation,
+    create_completion, delete_completion,
+    get_week_completions, advance_habit,
+    get_habit_week_completion_count
 )
-from schemas import HabitCreate, HabitUpdate, HabitResponse, HabitInvitationCreate, HabitInvitationOut
+from schemas import (
+    HabitCreate, HabitUpdate, HabitResponse, 
+    HabitInvitationCreate, HabitInvitationOut,
+    CompletionRequest, CompletionResponse, WeekCompletionsResponse
+)
 from auth import get_current_user
 from models import Habit
 
@@ -80,6 +87,20 @@ def reject_invitation(
         raise HTTPException(status_code=404, detail="Invitation not found")
     return {"detail": "Invitation rejected"}
 
+@router.get("/completions", response_model=WeekCompletionsResponse)
+def list_week_completions(
+    week_start: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    rows = get_week_completions(db, user_id=current_user, week_start=week_start)
+    return WeekCompletionsResponse(
+        completions=[
+            CompletionResponse(habit_id=r.habit_id, date=r.date)
+            for r in rows
+        ]
+    )
+
 @router.post("/{habit_id}/invite")
 def invite_friends_to_habit(
     habit_id: str,
@@ -142,3 +163,56 @@ def delete_existing_habit(
     if db_habit is None:
         raise HTTPException(status_code=404, detail="Habit not found")
     return {"detail": "Habit deleted"}
+
+
+@router.post("/{habit_id}/complete")
+def complete_habit(
+    habit_id: str,
+    body: CompletionRequest,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    habit = get_habit(db, habit_id=habit_id, user_id=current_user)
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+
+    create_completion(db, habit_id=habit_id, user_id=current_user, date=body.date)
+
+    from datetime import datetime, timedelta
+    date_obj = datetime.strptime(body.date, "%Y-%m-%d")
+    week_start = date_obj - timedelta(days=date_obj.weekday())
+    week_start_str = week_start.strftime("%Y-%m-%d")
+
+    count = get_habit_week_completion_count(
+        db, habit_id=habit_id, user_id=current_user, week_start=week_start_str
+    )
+    return {"detail": "Completed", "week_count": count}
+
+@router.delete("/{habit_id}/complete")
+def uncomplete_habit(
+    habit_id: str,
+    body: CompletionRequest,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    habit = get_habit(db, habit_id=habit_id, user_id=current_user)
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+
+    result = delete_completion(
+        db, habit_id=habit_id, user_id=current_user, date=body.date
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Completion not found")
+    return {"detail": "Completion removed"}
+
+@router.post("/{habit_id}/advance", response_model=HabitResponse)
+def advance_habit_level(
+    habit_id: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    habit = advance_habit(db, habit_id=habit_id, user_id=current_user)
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+    return habit

@@ -54,6 +54,7 @@ class HabitResponse(BaseModel):
     reminder_time: Optional[str] = None
     is_reminding: bool
     level: int
+    is_archived: bool
 
     class Config:
         orm_mode = True
@@ -96,3 +97,19 @@ class HabitInvitationOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CompletionRequest(BaseModel):
+    date: str
+
+
+class CompletionResponse(BaseModel):
+    habit_id: str
+    date: str
+
+    class config:
+        orm_mode = True
+
+
+class WeekCompletionsResponse(BaseModel):
+    completions: list[CompletionResponse]

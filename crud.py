@@ -1,7 +1,10 @@
 from sqlalchemy.orm import Session
-from models import User, Habit, FriendRequest, HabitInvitation
+from models import User, Habit, FriendRequest, HabitInvitation, HabitCompletion
 from schemas import UserUpsert, HabitCreate, HabitUpdate, FriendRequestCreate, FriendRequestResponse
 import uuid
+
+
+// Users
 
 def upsert_user(db: Session, firebase_uid: str, data: UserUpsert) -> User:
     db_user = db.query(User).filter(User.id == firebase_uid).first()
@@ -32,6 +35,9 @@ def delete_user(db: Session, firebase_uid: str):
     if db_user:
         db.delete(db_user)
     db.commit()
+
+
+// Habits
 
 def get_habit(db: Session, habit_id: str, user_id: str):
     return db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
@@ -71,6 +77,7 @@ def delete_habit(db: Session, habit_id: str, user_id: str):
         db.commit()
     return db_habit
 
+// Friend Requests
 
 def create_friend_request(db: Session, from_user_id: str, to_user_id: str):
     if from_user_id == to_user_id:
@@ -159,6 +166,7 @@ def get_friend_habits(db: Session, user_id: str):
         
     return result
 
+// Habit Invitations
 
 def create_habit_invitations(db: Session, habit_id: str, from_user_id: str, friend_ids: list[str]):
     habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == from_user_id).first()
@@ -237,3 +245,89 @@ def reject_habit_invitation(db: Session, invitation_id: str, user_id: str):
     db.commit()
     db.refresh(invitation)
     return invitation
+
+// Habit Completions
+
+def create_completion(db: Session, habit_id: str, user_id: str, date: str):
+    existing = db.query(HabitCompletion).filter(
+        HabitCompletion.habit_id == habit_id,
+        HabitCompletion.user_id == user_id,
+        HabitCompletion.date == date
+    ).first()
+    if existing:
+        return existing
+
+    completion = HabitCompletion(
+        habit_id=habit_id,
+        user_id=user_id,
+        date=date
+    )
+    db.add(completion)
+    db.commit()
+    db.refresh(completion)
+    return completion
+
+def delete_completion(db: Session, habit_id: str, user_id: str, date: str):
+    completion = db.query(HabitCompletion).filter(
+        HabitCompletion.habit_id == habit_id,
+        HabitCompletion.user_id == user_id,
+        HabitCompletion.date == date
+    ).first()
+    if completion:
+        db.delete(completion)
+        db.commit()
+    return completion
+
+def get_week_completions(db: Session, user_id: str, week_start: str):
+    from datetime import datetime, timedelta
+    start = datetime.strptime(week_start, "%Y-%m-%d")
+    end = start + timedelta(days=7)
+    end_str = end.strftime("%Y-%m-%d")
+
+    return db.query(HabitCompletion).filter(
+        HabitCompletion.user_id == user_id,
+        HabitCompletion.date >= week_start,
+        HabitCompletion.date < end_str
+    ).all()
+
+def get_habit_week_completion_count(db: Session, habit_id: str, user_id: str, week_start: str) -> int:
+    from datetime import datetime, timedelta
+    start = datetime.strptime(week_start, "%Y-%m-%d")
+    end = start + timedelta(days=7)
+    end_str = end.strftime("%Y-%m-%d")
+
+    return db.query(HabitCompletion).filter(
+        HabitCompletion.habit_id == habit_id,
+        HabitCompletion.user_id == user_id,
+        HabitCompletion.date >= week_start,
+        HabitCompletion.date < end_str
+    ).count()
+
+def advance_habit(db: Session, habit_id: str, user_id: str):
+    habit = db.query(Habit).filter(
+        Habit.id == habit_id,
+        Habit.user_id == user_id
+    ).first()
+    if not habit:
+        return None
+
+    habit.level += 1
+    if habit.level > 3:
+        habit.is_archived = True
+
+    db.commit()
+    db.refresh(habit)
+    return habit
+
+def reset_habit_level(db: Session, habit_id: str, user_id: str):
+    habit = db.query(Habit).filter(
+        Habit.id == habit_id,
+        Habit.user_id == user_id
+    ).first()
+    if not habit:
+        return None
+
+    habit.level = 1
+    db.commit()
+    db.refresh(habit)
+    return habit

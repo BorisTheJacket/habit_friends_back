@@ -27,6 +27,7 @@ class Habit(Base):
     reminder_time = Column(String, nullable=True)
     is_reminding = Column(Boolean, default=False)
     level = Column(Integer, default=1)
+    is_archived = Column(Boolean, default=False)
 
     user = relationship("User")
 
