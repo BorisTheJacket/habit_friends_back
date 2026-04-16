@@ -42,6 +42,7 @@ class HabitResponse(BaseModel):
     image: Optional[str] = None
     is_small: bool
     date: datetime
+    selected_days: Optional[str] = None
 
     class Config:
         orm_mode = True
