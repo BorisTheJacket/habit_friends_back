@@ -30,6 +30,7 @@ class HabitCreate(BaseModel):
     selected_days: Optional[str] = None
     reminder_time: Optional[str] = None
     is_reminding: bool = False
+    level: int = 1
 
 class HabitUpdate(BaseModel):
     name: Optional[str] = None
@@ -40,6 +41,7 @@ class HabitUpdate(BaseModel):
     selected_days: Optional[str] = None
     reminder_time: Optional[str] = None
     is_reminding: Optional[bool] = False
+    level: Optional[int] = None
 
 class HabitResponse(BaseModel):
     id: str
@@ -51,6 +53,7 @@ class HabitResponse(BaseModel):
     selected_days: Optional[str] = None
     reminder_time: Optional[str] = None
     is_reminding: bool
+    level: int
 
     class Config:
         orm_mode = True

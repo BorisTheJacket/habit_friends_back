@@ -26,6 +26,7 @@ class Habit(Base):
     selected_days = Column(String, nullable=True)
     reminder_time = Column(String, nullable=True)
     is_reminding = Column(Boolean, default=False)
+    level = Column(Integer, default=1)
 
     user = relationship("User")
 
@@ -56,3 +57,16 @@ class HabitInvitation(Base):
     habit = relationship("Habit")
     from_user = relationship("User", foreign_keys=[from_user_id])
     to_user = relationship("User", foreign_keys=[to_user_id])
+
+
+class HabitCompletion(Base):
+    __tablename__ = "habit_completions"
+
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    habit_id = Column(String, ForeignKey("habits.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    date = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    habit = relationship("Habit")
+    user = relationship("User")
