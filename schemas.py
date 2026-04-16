@@ -27,6 +27,7 @@ class HabitCreate(BaseModel):
     is_small: bool = False
     image: Optional[str] = None
     date: Optional[datetime] = None
+    selected_days: Optional[str] = None
 
 class HabitUpdate(BaseModel):
     name: Optional[str] = None
@@ -34,6 +35,7 @@ class HabitUpdate(BaseModel):
     is_small: Optional[bool] = None
     image: Optional[str] = None
     date: Optional[datetime] = None
+    selected_days: Optional[str] = None
 
 class HabitResponse(BaseModel):
     id: str

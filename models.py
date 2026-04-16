@@ -23,6 +23,7 @@ class Habit(Base):
     image = Column(String, nullable=True)
     is_small = Column(Boolean, default=False)
     date = Column(DateTime, default=datetime.utcnow)
+    selected_days = Column(String, nullable=True)
 
     user = relationship("User")
 
