@@ -24,6 +24,8 @@ class Habit(Base):
     is_small = Column(Boolean, default=False)
     date = Column(DateTime, default=datetime.utcnow)
     selected_days = Column(String, nullable=True)
+    reminder_time = Column(String, nullable=True)
+    is_reminding = Column(Boolean, default=False)
 
     user = relationship("User")
 

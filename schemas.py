@@ -28,6 +28,8 @@ class HabitCreate(BaseModel):
     image: Optional[str] = None
     date: Optional[datetime] = None
     selected_days: Optional[str] = None
+    reminder_time: Optional[str] = None
+    is_reminding: bool = False
 
 class HabitUpdate(BaseModel):
     name: Optional[str] = None
@@ -36,6 +38,8 @@ class HabitUpdate(BaseModel):
     image: Optional[str] = None
     date: Optional[datetime] = None
     selected_days: Optional[str] = None
+    reminder_time: Optional[str] = None
+    is_reminding: Optional[bool] = False
 
 class HabitResponse(BaseModel):
     id: str
@@ -45,6 +49,8 @@ class HabitResponse(BaseModel):
     is_small: bool
     date: datetime
     selected_days: Optional[str] = None
+    reminder_time: Optional[str] = None
+    is_reminding: bool
 
     class Config:
         orm_mode = True
