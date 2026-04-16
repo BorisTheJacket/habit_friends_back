@@ -4,7 +4,7 @@ from schemas import UserUpsert, HabitCreate, HabitUpdate, FriendRequestCreate, F
 import uuid
 
 
-// Users
+# Users
 
 def upsert_user(db: Session, firebase_uid: str, data: UserUpsert) -> User:
     db_user = db.query(User).filter(User.id == firebase_uid).first()
