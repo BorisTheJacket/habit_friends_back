@@ -66,6 +66,7 @@ def update_habit_image(db: Session, habit_id: str, user_id: str, image: bytes):
 def delete_habit(db: Session, habit_id: str, user_id: str):
     db_habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
     if db_habit:
+        db.query(HabitInvitation).filter(HabitInvitation.habit_id == habit_id).delete()
         db.delete(db_habit)
         db.commit()
     return db_habit
