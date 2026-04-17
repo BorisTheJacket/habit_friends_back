@@ -216,3 +216,14 @@ def advance_habit_level(
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
     return habit
+
+@router.post("/{habit_id}/reset")
+def reset_habit_level(
+    habit_id: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    habit = reset_habit_level(db, habit_id=habit_id, user_id=current_user)
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+    return habit
