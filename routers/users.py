@@ -69,8 +69,8 @@ def check_username(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
-    existing = db.query(User).filter(
-        User.username == username,
-        User.id != current_user
-    ).first()
+    q = db.query(User).filter(User.username == username)
+    if current_user:
+        q = q.filter(User.firebase_uid != current_user)
+    existing = q.first()
     return {"available": existing is None}
