@@ -29,7 +29,7 @@ class Habit(Base):
     level = Column(Integer, default=1)
     is_archived = Column(Boolean, default=False)
     requires_mutual_confirmation = Column(Boolean, default=False)
-    mutual_grpoup_id = Column(String, nullable=True, index=True)
+    mutual_group_id = Column(String, nullable=True, index=True)
 
     user = relationship("User")
 
@@ -77,7 +77,7 @@ class HabitCompletion(Base):
 class MutualDayConfirmation(Base):
     __tablename__ = "mutual_day_confirmations"
     __table_args__ = (
-        UniqueConstraint('mutual_group_id', 'user_id', 'date', name='uix_mutual_confirmation')
+        UniqueConstraint("mutual_group_id", "user_id", "date", name="uix_mutual_confirmation"),
     )
 
     id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
