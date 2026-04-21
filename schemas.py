@@ -31,6 +31,7 @@ class HabitCreate(BaseModel):
     reminder_time: Optional[str] = None
     is_reminding: bool = False
     level: int = 1
+    requires_mutual_confirmation: bool = False
 
 class HabitUpdate(BaseModel):
     name: Optional[str] = None
@@ -42,6 +43,7 @@ class HabitUpdate(BaseModel):
     reminder_time: Optional[str] = None
     is_reminding: Optional[bool] = False
     level: Optional[int] = None
+    requires_mutual_confirmation: Optional[bool] = None
 
 class HabitResponse(BaseModel):
     id: str
@@ -55,6 +57,8 @@ class HabitResponse(BaseModel):
     is_reminding: bool
     level: int
     is_archived: bool
+    requires_mutual_confirmation: bool = False
+    mutual_group_id: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -106,8 +110,9 @@ class CompletionRequest(BaseModel):
 class CompletionResponse(BaseModel):
     habit_id: str
     date: str
+    pending_mutual: bool = False
 
-    class config:
+    class Config:
         orm_mode = True
 
 

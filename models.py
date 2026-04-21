@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, LargeBinary, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, LargeBinary, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime
@@ -28,6 +28,8 @@ class Habit(Base):
     is_reminding = Column(Boolean, default=False)
     level = Column(Integer, default=1)
     is_archived = Column(Boolean, default=False)
+    requires_mutual_confirmation = Column(Boolean, default=False)
+    mutual_grpoup_id = Column(String, nullable=True, index=True)
 
     user = relationship("User")
 
@@ -70,4 +72,18 @@ class HabitCompletion(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     habit = relationship("Habit")
+    user = relationship("User")
+
+class MutualDayConfirmation(Base):
+    __tablename__ = "mutual_day_confirmations"
+    __table_args__ = (
+        UniqueConstraint('mutual_group_id', 'user_id', 'date', name='uix_mutual_confirmation')
+    )
+
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    mutual_group_id = Column(String, nullable=False, index=True)
+    date = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
     user = relationship("User")
