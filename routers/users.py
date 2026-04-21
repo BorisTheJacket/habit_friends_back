@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 from crud import upsert_user, get_user, get_all_users
 from schemas import UserUpsert, UserResponse
-from auth import get_current_user
+from auth import get_current_user, get_optional_current_user
 from crud import upsert_user, get_user, get_all_users, delete_user
 from firebase_admin import auth as firebase_auth
 from models import User
+from typing import Optional
 
 router = APIRouter()
 
@@ -67,7 +68,7 @@ def delete_profile(
 def check_username(
     username: str,
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: Optional[str] = Depends(get_optional_current_user),
 ):
     q = db.query(User).filter(User.username == username)
     if current_user:
