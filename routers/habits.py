@@ -31,7 +31,7 @@ from schemas import (
     CompletionRequest,
     CompletionResponse,
     WeekCompletionsResponse,
-    UserResponse,
+    UserResponse
 )
 from auth import get_current_user
 from models import Habit
@@ -329,7 +329,7 @@ def reset_habit_level_route(
     return habit
 
 
-@router.get("/{habit_id}/members", response_model=list[UserPublicResponse])
+@router.get("/{habit_id}/members", response_model=list[UserResponse])
 async def get_habit_members(
     habit_id: str,
     current_user=Depends(get_current_user),
