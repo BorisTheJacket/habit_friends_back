@@ -9,7 +9,14 @@ from crud import (
     get_friends,
     get_friend_habits
     )
-from schemas import FriendRequestCreate, FriendRequestResponse, UserResponse, FriendHabitResponse
+from schemas import (
+    FriendRequestCreate,
+    FriendRequestResponse,
+    UserResponse,
+    FriendHabitResponse,
+    ActivityFeedItemResponse,
+    ActivityHabitResponse,
+)
 from auth import get_current_user
 
 router = APIRouter()
@@ -73,9 +80,33 @@ def list_friends(
 ):
     return get_friends(db, user_id=current_user)
 
-@router.get("/habits", response_model=list[FriendHabitResponse])
+@router.get("/habits", response_model=list[ActivityFeedItemResponse])
 def list_friend_habits(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user)
 ):
-    return get_friend_habits(db, user_id=current_user)
+    raw = get_friend_habits(db, user_id=current_user)
+    result = []
+    for item in raw:
+        user = item["user"]
+        habit = item["habit"]
+        result.append(
+            ActivityFeedItemResponse(
+                user=UserResponse(
+                    id=user.id,
+                    username=user.username,
+                    email=user.email,
+                    avatar=user.avatar,
+                ),
+                habit=ActivityHabitResponse(
+                    id=habit.id,
+                    name=habit.name,
+                    days=habit.days,
+                    image=habit.image,
+                    is_small=habit.is_small,
+                    date=habit.date.isoformat() if habit.date else "",
+                    is_mutual=habit.requires_mutual_confirmation or False,
+                ),
+            )
+        )
+    return result

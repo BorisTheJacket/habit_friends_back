@@ -118,3 +118,23 @@ class CompletionResponse(BaseModel):
 
 class WeekCompletionsResponse(BaseModel):
     completions: list[CompletionResponse]
+
+
+class ActivityHabitResponse(BaseModel):
+    id: str
+    name: str
+    days: int
+    image: Optional[str] = None
+    is_small: bool = False
+    date: str          # ISO 8601 string — activity feed date
+    is_mutual: bool = False
+
+    class Config:
+        orm_mode = True
+
+class ActivityFeedItemResponse(BaseModel):
+    user: UserResponse
+    habit: ActivityHabitResponse
+
+    class Config:
+        orm_mode = True

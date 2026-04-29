@@ -621,3 +621,38 @@ def reset_habit_level(db: Session, habit_id: str, user_id: str):
     db.commit()
     db.refresh(habit)
     return habit
+
+
+def get_user_habits_public(db: Session, user_id: str):
+    """Return all non-archived habits for any user (used in friend profile view)."""
+    return (
+        db.query(Habit)
+        .filter(Habit.user_id == user_id, Habit.is_archived == False)
+        .all()
+    )
+
+
+def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
+    """Return all other users in the same mutual group as habit_id."""
+    habit = (
+        db.query(Habit)
+        .filter(Habit.id == habit_id)
+        .first()
+    )
+    if not habit or not habit.mutual_group_id:
+        return []
+
+    group_habits = (
+        db.query(Habit)
+        .filter(
+            Habit.mutual_group_id == habit.mutual_group_id,
+            Habit.is_archived == False,
+            Habit.user_id != requesting_user_id,
+        )
+        .all()
+    )
+    member_user_ids = [h.user_id for h in group_habits]
+    if not member_user_ids:
+        return []
+
+    return db.query(User).filter(User.id.in_(member_user_ids)).all()

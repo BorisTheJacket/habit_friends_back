@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from crud import upsert_user, get_user, get_all_users
-from schemas import UserUpsert, UserResponse
+from schemas import UserUpsert, UserResponse, HabitResponse
 from auth import get_current_user, get_optional_current_user
-from crud import upsert_user, get_user, get_all_users, delete_user
+from crud import upsert_user, get_user, get_all_users, delete_user, get_user_habits_public
 from firebase_admin import auth as firebase_auth
 from models import User
 from typing import Optional
@@ -75,3 +75,12 @@ def check_username(
         q = q.filter(User.firebase_uid != current_user)
     existing = q.first()
     return {"available": existing is None}
+
+
+@router.get("/{user_id}/habits", response_model=list[HabitResponse])
+def get_user_habits(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    return get_user_habits_public(db, user_id=user_id)
