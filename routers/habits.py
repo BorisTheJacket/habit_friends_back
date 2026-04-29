@@ -333,7 +333,7 @@ def reset_habit_level_route(
 async def get_habit_members(
     habit_id: str,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     # Get the habit and verify the caller is a member
     result = await db.execute(
