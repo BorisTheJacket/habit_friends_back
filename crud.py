@@ -652,7 +652,7 @@ def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
             )
             .all()
             )
-    member_user_ids.update(h.user_id for h in group_habits)
+        member_user_ids.update(h.user_id for h in group_habits)
     if habit.user_id == requesting_user_id:
         accepted_invites = (
             db.query(HabitInvitation)
