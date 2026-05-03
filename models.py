@@ -30,6 +30,7 @@ class Habit(Base):
     is_archived = Column(Boolean, default=False)
     requires_mutual_confirmation = Column(Boolean, default=False)
     mutual_group_id = Column(String, nullable=True, index=True)
+    parent_habit_id = Column(String, nullable=True, index=True)
 
     user = relationship("User")
 

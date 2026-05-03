@@ -318,6 +318,7 @@ def accept_habit_invitation(db: Session, invitation_id: str, user_id: str):
             is_archived=False,
             requires_mutual_confirmation=original_habit.requires_mutual_confirmation,
             mutual_group_id=original_habit.mutual_group_id,
+            parent_habit_id=original_habit.id,
         )
         db.add(new_habit)
 
@@ -632,7 +633,7 @@ def get_user_habits_public(db: Session, user_id: str):
     )
 
 
-def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
+# def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
     """Return all other users in the same mutual group as habit_id."""
     habit = (
         db.query(Habit)
@@ -661,10 +662,95 @@ def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
                 HabitInvitation.status == "accepted",
             )
             .all()
+            )
+        member_user_ids.update(h.user_id for h in group_habits)
+
+    root_id = habit.parent_habit_id or habit.id
+    root_habit = db.query(Habit).filter(Habit.id == root_id).first()
+    if root_habit and not root_habit.is_archived:
+        member_user_ids.add(root_habit.user_id)
+    clone_habits = (
+        db.query(Habit)
+        .filter(
+            Habit.parent_habit_id == root_id,
+            Habit.is_archived == False,
         )
-        member_user_ids.update(inv.to_user_id for inv in accepted_invites)
+        .all()
+    )
+    member_user_ids.update(h.user_id for h in clone_habits)
+
     member_user_ids.discard(requesting_user_id)
     
+    if not member_user_ids:
+        return []
+
+    return db.query(User).filter(User.id.in_(list(member_user_ids))).all()
+def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
+    """Return every other participant of this habit.
+
+    The habit can be linked to siblings two ways, which we union:
+      - `mutual_group_id` — everyone sharing the mutual group (for strict
+        mutual-confirmation habits).
+      - parent/child chain via `parent_habit_id` — the original habit (the
+        "root") plus every clone created when friends accepted invitations.
+        This gives symmetric visibility to both the inviter and every
+        invitee, regardless of whether mutual confirmation is enabled.
+    """
+    habit = (
+        db.query(Habit)
+        .filter(Habit.id == habit_id)
+        .first()
+    )
+    if not habit:
+        return []
+
+    member_user_ids: set[str] = set()
+
+    # Mutual group branch (kept for defensive coverage of legacy rows).
+    if habit.mutual_group_id:
+        group_habits = (
+            db.query(Habit)
+            .filter(
+                Habit.mutual_group_id == habit.mutual_group_id,
+                Habit.is_archived == False,
+            )
+            .all()
+        )
+        member_user_ids.update(h.user_id for h in group_habits)
+
+    # Parent/child branch: walk to the root, then collect all clones + root owner.
+    root_id = habit.parent_habit_id or habit.id
+    root_habit = (
+        db.query(Habit)
+        .filter(Habit.id == root_id)
+        .first()
+    )
+    if root_habit and not root_habit.is_archived:
+        member_user_ids.add(root_habit.user_id)
+    clone_habits = (
+        db.query(Habit)
+        .filter(
+            Habit.parent_habit_id == root_id,
+            Habit.is_archived == False,
+        )
+        .all()
+    )
+    member_user_ids.update(h.user_id for h in clone_habits)
+
+    # Legacy fallback: pre-parent_habit_id clones. If the caller owns the
+    # habit, also include anyone who accepted an invitation to it.
+    if habit.user_id == requesting_user_id:
+        accepted_invites = (
+            db.query(HabitInvitation)
+            .filter(
+                HabitInvitation.habit_id == habit_id,
+                HabitInvitation.status == "accepted",
+            )
+            .all()
+        )
+        member_user_ids.update(inv.to_user_id for inv in accepted_invites)
+
+    member_user_ids.discard(requesting_user_id)
     if not member_user_ids:
         return []
 
