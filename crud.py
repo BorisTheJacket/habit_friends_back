@@ -639,20 +639,30 @@ def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
         .filter(Habit.id == habit_id)
         .first()
     )
-    if not habit or not habit.mutual_group_id:
+    if not habit:
         return []
 
-    group_habits = (
-        db.query(Habit)
-        .filter(
-            Habit.mutual_group_id == habit.mutual_group_id,
-            Habit.is_archived == False,
-            Habit.user_id != requesting_user_id,
+    member_user_ids: set[str] = set()
+    if habit.mutual_group_id:
+        group_habits = (
+            db.query(Habit)
+            .filter(
+                Habit.mutual_group_id == habit.mutual_group_id,
+                Habit.is_archived == False,
+            )
+            .all()
+            )
+    member_user_ids.update(h.user_id for h in group_habits)
+    if habit.user_id == requesting_user_id:
+        accepted_invites = (
+            db.query(HabitInvitation)
+            .filter(
+                HabitInvitation.habit_id == habit_id,
+                HabitInvitation.status == "accepted",
+            )
+            .all()
         )
-        .all()
-    )
-    member_user_ids = [h.user_id for h in group_habits]
-    if not member_user_ids:
-        return []
+        member_user_ids.update(inv.to_user_id for inv in accepted_invites)
+    member_user_ids.discard(requesting_user_id)
 
-    return db.query(User).filter(User.id.in_(member_user_ids)).all()
+    return db.query(User).filter(User.id.in_(list(member_user_ids))).all()
