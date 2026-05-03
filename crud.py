@@ -664,5 +664,8 @@ def get_habit_members(db: Session, habit_id: str, requesting_user_id: str):
         )
         member_user_ids.update(inv.to_user_id for inv in accepted_invites)
     member_user_ids.discard(requesting_user_id)
+    
+    if not member_user_ids:
+        return []
 
     return db.query(User).filter(User.id.in_(list(member_user_ids))).all()
