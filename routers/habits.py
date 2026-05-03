@@ -329,41 +329,41 @@ def reset_habit_level_route(
     return habit
 
 
-@router.get("/{habit_id}/members", response_model=list[UserResponse])
-async def get_habit_members(
-    habit_id: str,
-    current_user=Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    # Get the habit and verify the caller is a member
-    result = await db.execute(
-        select(Habit).where(Habit.id == habit_id)
-    )
-    habit = result.scalar_one_or_none()
-    if not habit:
-        raise HTTPException(status_code=404, detail="Habit not found")
+# @router.get("/{habit_id}/members", response_model=list[UserResponse])
+# async def get_habit_members(
+#     habit_id: str,
+#     current_user=Depends(get_current_user),
+#     db: Session = Depends(get_db),
+# ):
+#     # Get the habit and verify the caller is a member
+#     result = await db.execute(
+#         select(Habit).where(Habit.id == habit_id)
+#     )
+#     habit = result.scalar_one_or_none()
+#     if not habit:
+#         raise HTTPException(status_code=404, detail="Habit not found")
 
-    # Only members of the mutual group can see the list
-    if habit.mutual_group_id is None:
-        return []
+#     # Only members of the mutual group can see the list
+#     if habit.mutual_group_id is None:
+#         return []
 
-    # Fetch all habits in the same mutual group
-    group_result = await db.execute(
-        select(Habit).where(
-            Habit.mutual_group_id == habit.mutual_group_id,
-            Habit.is_archived == False,
-        )
-    )
-    group_habits = group_result.scalars().all()
+#     # Fetch all habits in the same mutual group
+#     group_result = await db.execute(
+#         select(Habit).where(
+#             Habit.mutual_group_id == habit.mutual_group_id,
+#             Habit.is_archived == False,
+#         )
+#     )
+#     group_habits = group_result.scalars().all()
 
-    # Collect user IDs (excluding the caller)
-    member_user_ids = [h.user_id for h in group_habits if h.user_id != current_user.id]
+#     # Collect user IDs (excluding the caller)
+#     member_user_ids = [h.user_id for h in group_habits if h.user_id != current_user.id]
 
-    if not member_user_ids:
-        return []
+#     if not member_user_ids:
+#         return []
 
-    users_result = await db.execute(
-        select(User).where(User.id.in_(member_user_ids))
-    )
-    members = users_result.scalars().all()
-    return members
+#     users_result = await db.execute(
+#         select(User).where(User.id.in_(member_user_ids))
+#     )
+#     members = users_result.scalars().all()
+#     return members
