@@ -10,6 +10,7 @@ from crud import (
     get_friend_habits,
     get_user,
 )
+from notifications import send_invite_notification
 from schemas import (
     FriendRequestCreate,
     FriendRequestResponse,

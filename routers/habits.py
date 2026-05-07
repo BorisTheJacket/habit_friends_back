@@ -4,7 +4,6 @@ from database import SessionLocal
 from crud import (
     get_habit,
     get_habits,
-    get_user,
     create_habit,
     update_habit,
     delete_habit,
@@ -22,7 +21,9 @@ from crud import (
     record_mutual_confirmation,
     withdraw_mutual_confirmation,
     get_habit_members,
+    get_user,
 )
+from notifications import send_invite_notification
 from schemas import (
     HabitCreate,
     HabitUpdate,
