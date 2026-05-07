@@ -4,6 +4,7 @@ from database import SessionLocal
 from crud import (
     get_habit,
     get_habits,
+    get_user,
     create_habit,
     update_habit,
     delete_habit,
@@ -134,7 +135,7 @@ def list_week_completions(
 
 
 @router.post("/{habit_id}/invite")
-def invite_friends_to_habit(
+async def invite_friends_to_habit(
     habit_id: str,
     body: HabitInvitationCreate,
     db: Session = Depends(get_db),
@@ -149,6 +150,20 @@ def invite_friends_to_habit(
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+    if created:
+        habit = db.query(Habit).filter(Habit.id == habit_id).first()
+        sender = get_user(db, firebase_uid=current_user)
+        sender_name = sender.username if sender and sender.username else "A friend"
+        habit_name = habit.name if habit else "a habit"
+        await send_invite_notification(
+            external_ids=[inv.to_user_id for inv in created],
+            type_="habit_invite",
+            title="New habit invitation",
+            body=f"{sender_name} invited you to '{habit_name}'",
+            data={"habit_id": habit_id, "from_user_id": current_user},
+        )
+
     return {"detail": f"{len(created)} invitation(s) sent"}
 
 
@@ -327,43 +342,3 @@ def reset_habit_level_route(
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
     return habit
-
-
-# @router.get("/{habit_id}/members", response_model=list[UserResponse])
-# async def get_habit_members(
-#     habit_id: str,
-#     current_user=Depends(get_current_user),
-#     db: Session = Depends(get_db),
-# ):
-#     # Get the habit and verify the caller is a member
-#     result = await db.execute(
-#         select(Habit).where(Habit.id == habit_id)
-#     )
-#     habit = result.scalar_one_or_none()
-#     if not habit:
-#         raise HTTPException(status_code=404, detail="Habit not found")
-
-#     # Only members of the mutual group can see the list
-#     if habit.mutual_group_id is None:
-#         return []
-
-#     # Fetch all habits in the same mutual group
-#     group_result = await db.execute(
-#         select(Habit).where(
-#             Habit.mutual_group_id == habit.mutual_group_id,
-#             Habit.is_archived == False,
-#         )
-#     )
-#     group_habits = group_result.scalars().all()
-
-#     # Collect user IDs (excluding the caller)
-#     member_user_ids = [h.user_id for h in group_habits if h.user_id != current_user.id]
-
-#     if not member_user_ids:
-#         return []
-
-#     users_result = await db.execute(
-#         select(User).where(User.id.in_(member_user_ids))
-#     )
-#     members = users_result.scalars().all()
-#     return members

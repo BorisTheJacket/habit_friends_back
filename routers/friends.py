@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from crud import (
-    create_friend_request, 
-    get_incoming_requests, 
-    accept_friend_request, 
+    create_friend_request,
+    get_incoming_requests,
+    accept_friend_request,
     reject_friend_request,
     get_friends,
-    get_friend_habits
-    )
+    get_friend_habits,
+    get_user,
+)
 from schemas import (
     FriendRequestCreate,
     FriendRequestResponse,
@@ -18,8 +19,11 @@ from schemas import (
     ActivityHabitResponse,
 )
 from auth import get_current_user
+from notifications import send_invite_notification
 
 router = APIRouter()
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -27,20 +31,36 @@ def get_db():
     finally:
         db.close()
 
+
 @router.post("/request", response_model=FriendRequestResponse)
-def send_friend_request(
+async def send_friend_request(
     body: FriendRequestCreate,
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: str = Depends(get_current_user),
 ):
     if body.to_user_id == current_user:
-        raise HTTPException(status_code=400, detail="Cannot send friend request to yourself")
+        raise HTTPException(
+            status_code=400, detail="Cannot send friend request to yourself"
+        )
     try:
-        result = create_friend_request(db=db, from_user_id=current_user, to_user_id=body.to_user_id)
+        result = create_friend_request(
+            db=db, from_user_id=current_user, to_user_id=body.to_user_id
+        )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     if result is None:
         raise HTTPException(status_code=400, detail="Request failed")
+
+    sender = get_user(db, firebase_uid=current_user)
+    sender_name = (sender.username if sender and sender.username else "Someone")
+    await send_invite_notification(
+        external_ids=[body.to_user_id],
+        type_="friend_request",
+        title="New friend request",
+        body=f"{sender_name} sent you a friend request",
+        data={"request_id": result.id, "from_user_id": current_user},
+    )
+
     return result
 
 
