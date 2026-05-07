@@ -127,8 +127,9 @@ class ActivityHabitResponse(BaseModel):
     days: int
     image: Optional[str] = None
     is_small: bool = False
-    date: str          # ISO 8601 string — activity feed date
+    date: str  # ISO 8601 string — activity feed date
     is_mutual: bool = False
+    completed_this_week: int = 0
 
     class Config:
         orm_mode = True

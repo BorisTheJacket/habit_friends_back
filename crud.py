@@ -223,18 +223,6 @@ def update_habit_image(db: Session, habit_id: str, user_id: str, image: bytes):
     return None
 
 
-# def delete_habit(db: Session, habit_id: str, user_id: str):
-#     db_habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
-#     if db_habit:
-#         mg = db_habit.mutual_group_id
-#         db.query(HabitInvitation).filter(HabitInvitation.habit_id == habit_id).delete()
-#         db.delete(db_habit)
-#         db.commit()
-#         if mg:
-#             _cleanup_mutual_group_if_orphan(db, mg)
-#         return db_habit
-#     return None
-
 
 def _cleanup_mutual_group_if_orphan(db: Session, mutual_group_id: str):
     remaining = db.query(Habit).filter(Habit.mutual_group_id == mutual_group_id).count()
@@ -345,25 +333,43 @@ def get_friend_habits(db: Session, user_id: str):
         )
         .all()
     )
-    friend_ids = []
-    for req in requests:
-        if req.from_user_id == user_id:
-            friend_ids.append(req.to_user_id)
-        else:
-            friend_ids.append(req.from_user_id)
-
+    friend_ids = [
+        req.to_user_id if req.from_user_id == user_id else req.from_user_id
+        for req in requests
+    ]
     if not friend_ids:
         return []
 
-    habits = db.query(Habit).filter(Habit.user_id.in_(friend_ids)).all()
+    habits = (
+        db.query(Habit)
+        .filter(Habit.user_id.in_(friend_ids), Habit.is_archived == False)
+        .all()
+    )
     users = db.query(User).filter(User.id.in_(friend_ids)).all()
     user_map = {user.id: user for user in users}
+
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    week_start = _week_start_str(today)
 
     result = []
     for habit in habits:
         user = user_map.get(habit.user_id)
-        if user:
-            result.append({"user": user, "habit": habit})
+        if not user:
+            continue
+        completed_this_week = (
+            db.query(HabitCompletion)
+            .filter(
+                HabitCompletion.habit_id == habit.id,
+                HabitCompletion.user_id == habit.user_id,
+                HabitCompletion.date >= week_start,
+            )
+            .count()
+        )
+        result.append({
+            "user": user,
+            "habit": habit,
+            "completed_this_week": completed_this_week,
+        })
     return result
 
 

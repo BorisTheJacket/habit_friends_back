@@ -85,28 +85,19 @@ def list_friend_habits(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user)
 ):
-    raw = get_friend_habits(db, user_id=current_user)
-    result = []
-    for item in raw:
-        user = item["user"]
-        habit = item["habit"]
-        result.append(
-            ActivityFeedItemResponse(
-                user=UserResponse(
-                    id=user.id,
-                    username=user.username,
-                    email=user.email,
-                    avatar=user.avatar,
-                ),
-                habit=ActivityHabitResponse(
-                    id=habit.id,
-                    name=habit.name,
-                    days=habit.days,
-                    image=habit.image,
-                    is_small=habit.is_small,
-                    date=habit.date.isoformat() if habit.date else "",
-                    is_mutual=habit.requires_mutual_confirmation or False,
-                ),
-            )
-        )
-    return result
+    return [
+        {
+            "user": item["user"],
+            "habit": {
+                "id": item["habit"].id,
+                "name": item["habit"].name,
+                "days": item["habit"].days,
+                "image": item["habit"].image,
+                "is_small": item["habit"].is_small,
+                "date": item["habit"].date.isoformat() if hasattr(item["habit"].date, "isoformat") else item["habit"].date,
+                "is_mutual": bool(item["habit"].requires_mutual_confirmation),
+                "completed_this_week": item["completed_this_week"],
+            },
+        }
+        for item in crud.get_friend_habits(db, current_user)
+    ]
