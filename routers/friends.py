@@ -99,5 +99,5 @@ def list_friend_habits(
                 "completed_this_week": item["completed_this_week"],
             },
         }
-        for item in crud.get_friend_habits(db, current_user)
+        for item in get_friend_habits(db, current_user)
     ]
