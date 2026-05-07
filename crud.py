@@ -40,11 +40,78 @@ def get_all_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def delete_user(db: Session, firebase_uid: str):
-    db.query(Habit).filter(Habit.user_id == firebase_uid).delete()
-    db_user = db.query(User).filter(User.id == firebase_uid).first()
-    if db_user:
-        db.delete(db_user)
+    """Permanently remove a user and every record that references them.
+
+    Order matters because of FK relations:
+      1. Habits owned by the user — and any rows that point at them
+         (habit_invitations, habit_completions). Clones that pointed at the
+         deleted habit via `parent_habit_id` keep their own habit row but
+         lose the parent reference.
+      2. The user's own habit_completions on OTHER users' habits.
+      3. The user's mutual_day_confirmations.
+      4. Habit invitations the user sent or received on any habit.
+      5. Friend requests in either direction (pending/accepted/rejected).
+      6. The user row.
+      7. Cleanup of any mutual_group that just lost its last participant.
+    """
+    user_habit_ids = [
+        h.id for h in db.query(Habit.id)
+                        .filter(Habit.user_id == firebase_uid)
+                        .all()
+    ]
+    user_mutual_groups = {
+        mg for (mg,) in db.query(Habit.mutual_group_id)
+                          .filter(
+                              Habit.user_id == firebase_uid,
+                              Habit.mutual_group_id.isnot(None),
+                          )
+                          .all()
+    }
+
+    if user_habit_ids:
+        db.query(HabitInvitation).filter(
+            HabitInvitation.habit_id.in_(user_habit_ids)
+        ).delete(synchronize_session=False)
+
+        db.query(HabitCompletion).filter(
+            HabitCompletion.habit_id.in_(user_habit_ids)
+        ).delete(synchronize_session=False)
+
+        db.query(Habit).filter(
+            Habit.parent_habit_id.in_(user_habit_ids)
+        ).update({"parent_habit_id": None}, synchronize_session=False)
+
+        db.query(Habit).filter(
+            Habit.user_id == firebase_uid
+        ).delete(synchronize_session=False)
+
+    db.query(HabitCompletion).filter(
+        HabitCompletion.user_id == firebase_uid
+    ).delete(synchronize_session=False)
+
+    db.query(MutualDayConfirmation).filter(
+        MutualDayConfirmation.user_id == firebase_uid
+    ).delete(synchronize_session=False)
+
+    db.query(HabitInvitation).filter(
+        (HabitInvitation.from_user_id == firebase_uid)
+        | (HabitInvitation.to_user_id == firebase_uid)
+    ).delete(synchronize_session=False)
+
+    db.query(FriendRequest).filter(
+        (FriendRequest.from_user_id == firebase_uid)
+        | (FriendRequest.to_user_id == firebase_uid)
+    ).delete(synchronize_session=False)
+
+    db.query(User).filter(User.id == firebase_uid).delete(
+        synchronize_session=False
+    )
+
     db.commit()
+
+    for mg in user_mutual_groups:
+        if mg:
+            _cleanup_mutual_group_if_orphan(db, mg)
 
 
 # --- Habits ---
