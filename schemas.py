@@ -59,6 +59,7 @@ class HabitResponse(BaseModel):
     is_archived: bool
     requires_mutual_confirmation: bool = False
     mutual_group_id: Optional[str] = None
+    parent_habit_id: Optional[str] = None
 
     class Config:
         orm_mode = True

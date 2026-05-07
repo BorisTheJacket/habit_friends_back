@@ -139,19 +139,78 @@ def create_habit(db: Session, habit: HabitCreate, user_id: str):
 
 def update_habit(db: Session, habit_id: str, user_id: str, habit_update: HabitUpdate):
     db_habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
-    if db_habit:
-        patch = habit_update.dict(exclude_unset=True)
-        turning_off = patch.get("requires_mutual_confirmation") is False
-        for key, value in patch.items():
-            setattr(db_habit, key, value)
-        if turning_off:
-            db_habit.mutual_group_id = None
-        if patch.get("requires_mutual_confirmation") is True and not db_habit.mutual_group_id:
-            db_habit.mutual_group_id = str(uuid.uuid4())
-        db.commit()
-        db.refresh(db_habit)
-        return db_habit
-    return None
+    if not db_habit:
+        return None
+
+    # Only the host (the original creator) can edit a habit. A clone — i.e.
+    # a habit that was generated when the current user accepted an
+    # invitation — is read-only for the invitee. Block the update so both
+    # the API and the UI converge on the same rule.
+    if db_habit.parent_habit_id is not None:
+        return None
+
+    patch = habit_update.dict(exclude_unset=True)
+    turning_off = patch.get("requires_mutual_confirmation") is False
+    for key, value in patch.items():
+        setattr(db_habit, key, value)
+    if turning_off:
+        db_habit.mutual_group_id = None
+    if patch.get("requires_mutual_confirmation") is True and not db_habit.mutual_group_id:
+        db_habit.mutual_group_id = str(uuid.uuid4())
+    db.commit()
+    db.refresh(db_habit)
+    return db_habit
+
+
+def delete_habit(db: Session, habit_id: str, user_id: str):
+    """Delete a habit. If the caller owns the host (root) habit, cascade
+    the deletion to every clone created from accepted invitations and to
+    any invitation rows still referencing it.
+
+    A clone (habit with ``parent_habit_id`` set) belongs to the invitee and
+    is treated as their own row — deleting it just removes the invitee from
+    the shared habit. Deleting the host wipes the habit for everyone.
+    """
+    db_habit = (
+        db.query(Habit)
+        .filter(Habit.id == habit_id, Habit.user_id == user_id)
+        .first()
+    )
+    if not db_habit:
+        return None
+
+    is_host = db_habit.parent_habit_id is None
+    mutual_group_id = db_habit.mutual_group_id
+
+    if is_host:
+        clone_ids = [
+            row.id for row in db.query(Habit.id)
+                                 .filter(Habit.parent_habit_id == habit_id)
+                                 .all()
+        ]
+        all_habit_ids = [habit_id] + clone_ids
+    else:
+        all_habit_ids = [habit_id]
+
+    if all_habit_ids:
+        db.query(HabitInvitation).filter(
+            HabitInvitation.habit_id.in_(all_habit_ids)
+        ).delete(synchronize_session=False)
+
+        db.query(HabitCompletion).filter(
+            HabitCompletion.habit_id.in_(all_habit_ids)
+        ).delete(synchronize_session=False)
+
+        db.query(Habit).filter(
+            Habit.id.in_(all_habit_ids)
+        ).delete(synchronize_session=False)
+
+    db.commit()
+
+    if mutual_group_id:
+        _cleanup_mutual_group_if_orphan(db, mutual_group_id)
+
+    return db_habit
 
 
 def update_habit_image(db: Session, habit_id: str, user_id: str, image: bytes):
@@ -164,17 +223,17 @@ def update_habit_image(db: Session, habit_id: str, user_id: str, image: bytes):
     return None
 
 
-def delete_habit(db: Session, habit_id: str, user_id: str):
-    db_habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
-    if db_habit:
-        mg = db_habit.mutual_group_id
-        db.query(HabitInvitation).filter(HabitInvitation.habit_id == habit_id).delete()
-        db.delete(db_habit)
-        db.commit()
-        if mg:
-            _cleanup_mutual_group_if_orphan(db, mg)
-        return db_habit
-    return None
+# def delete_habit(db: Session, habit_id: str, user_id: str):
+#     db_habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
+#     if db_habit:
+#         mg = db_habit.mutual_group_id
+#         db.query(HabitInvitation).filter(HabitInvitation.habit_id == habit_id).delete()
+#         db.delete(db_habit)
+#         db.commit()
+#         if mg:
+#             _cleanup_mutual_group_if_orphan(db, mg)
+#         return db_habit
+#     return None
 
 
 def _cleanup_mutual_group_if_orphan(db: Session, mutual_group_id: str):
