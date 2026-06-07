@@ -12,6 +12,13 @@ class UserCreate(BaseModel):
     email: str
     password: str
 
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordResetResponse(BaseModel):
+    # Always generic to avoid leaking which emails are registered.
+    message: str = "If an account exists for that email, a password reset link has been sent."
+
 class UserResponse(BaseModel):
     id: str
     username: Optional[str] = None
