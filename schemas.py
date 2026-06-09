@@ -17,6 +17,7 @@ class UserResponse(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     avatar: Optional[str] = None
+    is_premium: bool = False
 
     class Config:
         orm_mode = True

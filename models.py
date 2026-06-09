@@ -12,6 +12,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     avatar = Column(String, nullable=True)
     hashed_password = Column(String)
+    is_premium = Column(Boolean, default=False, nullable=False)
 
 class Habit(Base):
     __tablename__ = "habits"
