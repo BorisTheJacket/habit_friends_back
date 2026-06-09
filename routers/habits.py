@@ -93,7 +93,7 @@ def list_incoming_habit_invitations(
 
 
 @router.post("/invitations/{invitation_id}/accept")
-def accept_invitation(
+async def accept_invitation(
     invitation_id: str,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
@@ -101,6 +101,19 @@ def accept_invitation(
     result = accept_habit_invitation(db, invitation_id=invitation_id, user_id=current_user)
     if result is None:
         raise HTTPException(status_code=404, detail="Invitation not found")
+
+    habit = db.query(Habit).filter(Habit.id == result.habit_id).first()
+    acceptor = get_user(db, firebase_uid=current_user)
+    acceptor_name = acceptor.username if acceptor and acceptor.username else "A friend"
+    habit_name = habit.name if habit else "your habit"
+    await send_invite_notification(
+        external_ids=[result.from_user_id],
+        type_="habit_invite_accepted",
+        title="Invitation accepted",
+        body=f"{acceptor_name} accepted your invitation to '{habit_name}'",
+        data={"habit_id": result.habit_id},
+    )
+
     return {"detail": "Invitation accepted"}
 
 
