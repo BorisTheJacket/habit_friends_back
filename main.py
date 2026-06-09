@@ -4,7 +4,7 @@ load_dotenv()
 from fastapi import FastAPI, Request, Response
 from database import engine
 from models import Base
-from routers import habits, users, friends
+from routers import habits, users, friends, auth_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -13,6 +13,7 @@ app = FastAPI(title="Habit Friends Backend", version="1.0.0")
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(habits.router, prefix="/habits", tags=["habits"])
 app.include_router(friends.router, prefix="/friends", tags=["friends"])
+app.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 
 SUSPICIOUS_PATHS = [".env", ".git", "wp-config.php", "phpinfo.php", "debugbar"]
 
