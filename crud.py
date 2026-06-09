@@ -642,6 +642,29 @@ def delete_completion(db: Session, habit_id: str, user_id: str, date: str):
         return completion
     return None
 
+def _shared_group_rows(db: Session, habit: Habit) -> list[Habit]:
+    """Root + all clones for a non-mutual parent/clone group.
+    Returns [habit] for a solo habit (no propagation)."""
+    root_id = habit.parent_habit_id or habit.id
+    rows = (
+        db.query(Habit)
+        .filter((Habit.id == root_id) | (Habit.parent_habit_id == root_id))
+        .all()
+    )
+    return rows or [habit]
+
+
+def create_completion_for_group(db: Session, habit: Habit, date: str):
+    """Mark `date` complete for every participant of a shared habit."""
+    for row in _shared_group_rows(db, habit):
+        create_completion(db, habit_id=row.id, user_id=row.user_id, date=date)
+
+
+def delete_completion_for_group(db: Session, habit: Habit, date: str):
+    """Remove `date`'s completion for every participant of a shared habit."""
+    for row in _shared_group_rows(db, habit):
+        delete_completion(db, habit_id=row.id, user_id=row.user_id, date=date)
+
 
 def _week_start_str(date_str: str) -> str:
     date_obj = datetime.strptime(date_str, "%Y-%m-%d")

@@ -22,6 +22,10 @@ from crud import (
     withdraw_mutual_confirmation,
     get_habit_members,
     get_user,
+    create_completion,
+    delete_completion,
+    create_completion_for_group,
+    delete_completion_for_group,
 )
 from notifications import send_invite_notification
 from schemas import (
@@ -257,7 +261,7 @@ def complete_habit(
             detail="This habit uses mutual confirmation; use POST /habits/{id}/complete-mutual",
         )
 
-    create_completion(db, habit_id=habit_id, user_id=current_user, date=body.date)
+    create_completion_for_group(db, habit=habit, date=body.date)
     week_start_str = _week_start_str(body.date)
     count = get_habit_week_completion_count(
         db, habit_id=habit_id, user_id=current_user, week_start=week_start_str
@@ -282,7 +286,7 @@ def uncomplete_habit(
             detail="This habit uses mutual confirmation; use DELETE /habits/{id}/complete-mutual",
         )
 
-    result = delete_completion(db, habit_id=habit_id, user_id=current_user, date=body.date)
+    result = delete_completion_for_group(db, habit=habit, date=body.date)
     if not result:
         raise HTTPException(status_code=404, detail="Completion not found")
     return {"detail": "Completion removed"}
