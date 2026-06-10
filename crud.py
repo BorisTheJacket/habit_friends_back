@@ -10,6 +10,7 @@ from models import (
 from schemas import UserUpsert, HabitCreate, HabitUpdate, FriendRequestCreate, FriendRequestResponse
 import uuid
 from datetime import datetime, timedelta
+from typing import Optional
 
 
 
