@@ -119,6 +119,7 @@ class CompletionRequest(BaseModel):
 class CompletionResponse(BaseModel):
     habit_id: str
     date: str
+    completed_by_user_id: Optional[str] = None
     pending_mutual: bool = False
 
     class Config:

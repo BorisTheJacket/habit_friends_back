@@ -606,7 +606,7 @@ def withdraw_mutual_confirmation(db: Session, habit: Habit, user_id: str, date: 
 
 # --- Habit completions ---
 
-def create_completion(db: Session, habit_id: str, user_id: str, date: str):
+def create_completion(db, habit_id: str, user_id: str, date: str, completed_by_user_id: str | None = None):
     existing = (
         db.query(HabitCompletion)
         .filter(
@@ -619,7 +619,12 @@ def create_completion(db: Session, habit_id: str, user_id: str, date: str):
     if existing:
         return existing
 
-    completion = HabitCompletion(habit_id=habit_id, user_id=user_id, date=date)
+    completion = HabitCompletion(
+        habit_id=habit_id,
+        user_id=user_id,
+        date=date,
+        completed_by_user_id=completed_by_user_id,
+    )
     db.add(completion)
     db.commit()
     db.refresh(completion)
@@ -654,15 +659,40 @@ def _shared_group_rows(db: Session, habit: Habit) -> list[Habit]:
     return rows or [habit]
 
 
-def create_completion_for_group(db: Session, habit: Habit, date: str):
-    """Mark `date` complete for every participant of a shared habit."""
+def _group_completion_for_date(db: Session, habit: Habit, date: str) -> HabitCompletion | None:
     for row in _shared_group_rows(db, habit):
-        create_completion(db, habit_id=row.id, user_id=row.user_id, date=date)
+        found = (
+            db.query(HabitCompletion)
+            .filter(HabitCompletion.habit_id == row.id, HabitCompletion.date == date)
+            .first()
+        )
+        if found:
+            return found
+    return None
 
 
-def delete_completion_for_group(db: Session, habit: Habit, date: str):
-    """Remove `date`'s completion for every participant of a shared habit."""
-    for row in _shared_group_rows(db, habit):
+def create_completion_for_group(db: Session, habit: Habit, date: str, completed_by_user_id: str):
+    rows = _shared_group_rows(db, habit)
+    if len(rows) > 1:
+        existing = _group_completion_for_date(db, habit, date)
+        if existing:
+            if existing.completed_by_user_id and existing.completed_by_user_id != completed_by_user_id:
+                raise ValueError("already_completed_by_other")
+            return existing
+
+    for row in rows:
+        create_completion(db, habit_id=row.id, user_id=row.user_id, date=date, completed_by_user_id=completed_by_user_id)
+    return _group_completion_for_date(db, habit, date)
+
+
+def delete_completion_for_group(db: Session, habit: Habit, date: str, requesting_user_id: str):
+    rows = _shared_group_rows(db, habit)
+    if len(rows) > 1:
+        existing = _group_completion_for_date(db, habit, date)
+        if existing and existing.completed_by_user_id and existing.completed_by_user_id != requesting_user_id:
+            raise ValueError("not_completer")
+
+    for row in rows:
         delete_completion(db, habit_id=row.id, user_id=row.user_id, date=date)
 
 

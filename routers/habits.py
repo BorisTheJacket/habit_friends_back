@@ -261,11 +261,18 @@ def complete_habit(
             detail="This habit uses mutual confirmation; use POST /habits/{id}/complete-mutual",
         )
 
-    create_completion_for_group(db, habit=habit, date=body.date)
+    try:
+        create_completion_for_group(db, habit=habit, date=body.date, completed_by_user_id=current_user)
+    except ValueError as e:
+        if str(e) == "already_completed_by_other":
+            raise HTTPException(status_code=409, detail="Already completed by another participant")
     week_start_str = _week_start_str(body.date)
     count = get_habit_week_completion_count(
         db, habit_id=habit_id, user_id=current_user, week_start=week_start_str
     )
+
+    
+
     return {"detail": "Completed", "week_count": count, "pending_mutual": False, "confirmed": True}
 
 
@@ -286,7 +293,11 @@ def uncomplete_habit(
             detail="This habit uses mutual confirmation; use DELETE /habits/{id}/complete-mutual",
         )
 
-    result = delete_completion_for_group(db, habit=habit, date=body.date)
+    try:
+        result = delete_completion_for_group(db, habit=habit, date=body.date, requesting_user_id=current_user)
+    except ValueError as e:
+        if str(e) == "not_completer":
+            raise HTTPException(status_code=403, detail="Only the user who completed can uncheck")
     if not result:
         raise HTTPException(status_code=404, detail="Completion not found")
     return {"detail": "Completion removed"}
