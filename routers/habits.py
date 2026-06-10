@@ -294,13 +294,14 @@ def uncomplete_habit(
         )
 
     try:
-        result = delete_completion_for_group(db, habit=habit, date=body.date, requesting_user_id=current_user)
+        deleted = delete_completion_for_group(db, habit=habit, date=body.date, requesting_user_id=current_user)
     except ValueError as e:
         if str(e) == "not_completer":
             raise HTTPException(status_code=403, detail="Only the user who completed can uncheck")
-    if not result:
+    if not deleted:
         raise HTTPException(status_code=404, detail="Completion not found")
     return {"detail": "Completion removed"}
+
 
 
 def _week_start_str(date_str: str) -> str:

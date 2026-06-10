@@ -687,15 +687,18 @@ def create_completion_for_group(db: Session, habit: Habit, date: str, completed_
     return _group_completion_for_date(db, habit, date)
 
 
-def delete_completion_for_group(db: Session, habit: Habit, date: str, requesting_user_id: str):
+def delete_completion_for_group(db: Session, habit: Habit, date: str, requesting_user_id: str) -> bool:
     rows = _shared_group_rows(db, habit)
     if len(rows) > 1:
         existing = _group_completion_for_date(db, habit, date)
         if existing and existing.completed_by_user_id and existing.completed_by_user_id != requesting_user_id:
             raise ValueError("not_completer")
-
+    
+    deleted = False
     for row in rows:
-        delete_completion(db, habit_id=row.id, user_id=row.user_id, date=date)
+        if delete_completion(db, habit_id=row.id, user_id=row.user_id, date=date):
+            deleted = True
+    return deleted
 
 
 def _week_start_str(date_str: str) -> str:
