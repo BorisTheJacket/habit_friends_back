@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timedelta
 
 
+
 # --- Users (unchanged logic) ---
 
 def upsert_user(db: Session, firebase_uid: str, data: UserUpsert) -> User:
@@ -606,7 +607,7 @@ def withdraw_mutual_confirmation(db: Session, habit: Habit, user_id: str, date: 
 
 # --- Habit completions ---
 
-def create_completion(db, habit_id: str, user_id: str, date: str, completed_by_user_id: str | None = None):
+def create_completion(db, habit_id: str, user_id: str, date: str, completed_by_user_id: Optional[str] = None):
     existing = (
         db.query(HabitCompletion)
         .filter(
@@ -659,7 +660,7 @@ def _shared_group_rows(db: Session, habit: Habit) -> list[Habit]:
     return rows or [habit]
 
 
-def _group_completion_for_date(db: Session, habit: Habit, date: str) -> HabitCompletion | None:
+def _group_completion_for_date(db: Session, habit: Habit, date: str) -> Optional[HabitCompletion] :
     for row in _shared_group_rows(db, habit):
         found = (
             db.query(HabitCompletion)
